@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ioctl>
+#include <sys/ioctl.h>
 #include <string_view> 
 #include <linux/i2c-dev.h>
 
