@@ -11,7 +11,7 @@ project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
 
 
-enable_language(C++)
+enable_language(CXX)
 
 add_executable(${CMAKE_PROJECT_NAME})
 
