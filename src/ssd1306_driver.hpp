@@ -1,4 +1,36 @@
 #pragma once
+#include <vector>
+#include "i2c_driver.hpp"
+#include  <memory>
+#include <fstream>
+#include <filesystem> 
+#include <array>
+#include <bitset>
+/* windows style struct*/
+#pragma pack(push, 1)
+typedef struct tagBITMAPFILEHEADER {
+  uint16_t   bfType;
+  uint32_t  bfSize;
+  uint16_t   bfReserved1;
+  uint16_t   bfReserved2;
+  uint32_t  bfOffBits;
+} BITMAPFILEHEADER, *LPBITMAPFILEHEADER, *PBITMAPFILEHEADER;
+
+typedef struct tagBITMAPINFOHEADER {
+  unsigned long biSize;
+  long   biWidth;
+  long   biHeight;
+   unsigned short  biPlanes;
+   unsigned short  biBitCount;
+  unsigned long biCompression;
+  unsigned long biSizeImage;
+  long   biXPelsPerMeter;
+  long   biYPelsPerMeter;
+  unsigned long biClrUsed;
+  unsigned long biClrImportant;
+} BITMAPINFOHEADER, *LPBITMAPINFOHEADER, *PBITMAPINFOHEADER;
+#pragma pack(pop)
+
 /**
  * @brief SSD1306 OLED display driver (I2C version)
  * 
@@ -7,9 +39,12 @@
  */
 class SSD1306 {
 public:
-    /// Default I2C address (commonly 0x3C or 0x3D)
-    static constexpr uint8_t DEFAULT_ADDR = 0x3C;
 
+    enum class ControlByte: uint8_t  { 
+        COMMAND = 0x00,
+        DATA = 0x40
+      };
+    /// Default I2C address (commonly 0x3C or 0x3D)
     /**
      * @brief Enumeration of all SSD1306 command codes.
      * 
@@ -151,60 +186,29 @@ public:
     };
 
 private:
-    uint8_t i2c_addr;
-    std::function<void(const uint8_t cmd,const size_t len)> f_sendCommands = nullptr;
-    std::function<void(const uint8_t cmd,const size_t len)> f_sendData = nullptr;
-
+    std::shared_ptr<bus_driver> _bus; 
 public:
-    explicit SSD1306(uint8_t addr = DEFAULT_ADDR) : i2c_addr(addr) {}
-
-    /**
-     * @brief Send a single command byte.
-     */
-    void sendCommand(uint8_t cmd) const {
-        Wire.beginTransmission(i2c_addr);
-        Wire.write(0x00); // Control byte: Command
-        Wire.write(cmd);
-        Wire.endTransmission();
+    SSD1306() = delete;
+    SSD1306(std::shared_ptr<bus_driver> bus) {
+        _bus = bus;
     }
-
-    /**
-     * @brief Send a command and one parameter.
-     */
-    void sendCommand(uint8_t cmd, uint8_t value) const {
-        Wire.beginTransmission(i2c_addr);
-        Wire.write(0x00);
-        Wire.write(cmd);
-        Wire.write(value);
-        Wire.endTransmission();
-    }
-
-    /**
-     * @brief Send multiple command bytes.
-     */
-    void sendCommands(const uint8_t* data, size_t len) const {
-        Wire.beginTransmission(i2c_addr);
-        Wire.write(0x00);
-        Wire.write(data, len);
-        Wire.endTransmission();
-    }
-
     /**
      * @brief Send display RAM data (pixel buffer).
      * Control byte = 0x40.
      */
-    void sendData(const uint8_t* data, size_t len) const {
-        Wire.beginTransmission(i2c_addr);
-        Wire.write(0x40);
-        Wire.write(data, len);
-        Wire.endTransmission();
+    void sendData(const std::vector<uint8_t> &data) const {
+        std::vector<uint8_t> instruction = {(uint8_t)ControlByte::DATA};
+        instruction.insert(instruction.end(), data.begin(), data.end());
+        std::cout << "Sending data to display, size: " << instruction.size() << std::endl;
+        _bus->send(instruction);
     }
 
     /**
      * @brief Standard initialization sequence for 128x64 OLEDs.
      */
     void init_128x64() const {
-        const uint8_t init_seq[] = {
+        std::vector<uint8_t> init_seq = {
+            (uint8_t)ControlByte::COMMAND,
             (uint8_t)Command::DISPLAY_OFF,
             (uint8_t)Command::SET_DISPLAY_CLOCK_DIV, 0x80,
             (uint8_t)Command::SET_MULTIPLEX, 0x3F,
@@ -221,9 +225,11 @@ public:
             (uint8_t)Command::ENTIRE_DISPLAY_RESUME,
             (uint8_t)Command::NORMAL_DISPLAY,
             (uint8_t)Command::DEACTIVATE_SCROLL,
+            (uint8_t)Command::SET_COLUMN_ADDR, 0x00, 0x3F,
+            (uint8_t)Command::SET_PAGE_ADDR, 0x00, 0x07,
             (uint8_t)Command::DISPLAY_ON
         };
-        sendCommands(init_seq, sizeof(init_seq));
+        _bus->send(init_seq);
     }
 
     /**
@@ -231,20 +237,121 @@ public:
      * @param level Value between 0x00 (dim) and 0xFF (bright).
      */
     void setContrast(uint8_t level) const {
-        sendCommand((uint8_t)Command::SET_CONTRAST, level);
+        _bus->send(std::vector<uint8_t>{(uint8_t)ControlByte::COMMAND,(uint8_t)Command::SET_CONTRAST, level});
     }
 
     /**
      * @brief Turn display ON or OFF.
      */
     void setDisplayOn(bool on) const {
-        sendCommand(on ? (uint8_t)Command::DISPLAY_ON : (uint8_t)Command::DISPLAY_OFF);
+        if(on) {
+            _bus->send(std::vector<uint8_t>{(uint8_t)ControlByte::COMMAND, (uint8_t)Command::DISPLAY_ON});
+        } else {
+            _bus->send(std::vector<uint8_t>{(uint8_t)ControlByte::COMMAND, (uint8_t)Command::DISPLAY_OFF});
+        }
     }
 
     /**
      * @brief Enable or disable inverted display mode.
      */
     void invertDisplay(bool invert) const {
-        sendCommand(invert ? (uint8_t)Command::INVERT_DISPLAY : (uint8_t)Command::NORMAL_DISPLAY);
+        if(invert) {
+            _bus->send(std::vector<uint8_t>{(uint8_t)ControlByte::COMMAND, (uint8_t)Command::INVERT_DISPLAY});
+        } else {
+            _bus->send(std::vector<uint8_t>{(uint8_t)ControlByte::COMMAND, (uint8_t)Command::NORMAL_DISPLAY});
+        }
+
     }
+    void fill_display(uint8_t pixel_value) {
+        std::vector<uint8_t> image(128*64/8, pixel_value);
+        set_default_canvas();
+        sendData(image);
+    }
+    
+    void test_screen(uint8_t pixel_value) {
+        set_default_canvas();
+        for(auto i=0; i <= 128*64/8; i++){
+        sendData({pixel_value});
+        pixel_value--;
+        }
+    }
+    void set_default_canvas() {
+        _bus->send({(uint8_t)ControlByte::COMMAND, 
+            (uint8_t)Command::SET_COLUMN_ADDR, 0x00, 0x7f, 
+            (uint8_t)Command::SET_PAGE_ADDR, 0x00, 0x07
+        });
+    }
+
+    void DrawFromBMPFile(const std::filesystem::path& filename) {
+        _bus->send({(uint8_t)ControlByte::COMMAND, (uint8_t)Command::MEMORY_MODE, 0x01});
+        set_default_canvas();
+        std::ifstream file(filename, std::ios::binary);
+        if(!file) {
+            std::cout << "failed to open bitmap" << std::endl;
+            return;
+        }
+        	uint8_t* datBuff[2] = {nullptr, nullptr}; // Header buffers
+            BITMAPFILEHEADER* bmpHeader = nullptr; // Header
+            BITMAPINFOHEADER* bmpInfo   = nullptr; // Info 
+            datBuff[0] = new uint8_t[sizeof(BITMAPFILEHEADER)];
+            datBuff[1] = new uint8_t[sizeof(BITMAPINFOHEADER)];
+
+            file.read((char*)datBuff[0], sizeof(BITMAPFILEHEADER));
+            file.read((char*)datBuff[1], sizeof(BITMAPINFOHEADER));
+
+            	// Construct the values from the buffers
+            bmpHeader = (BITMAPFILEHEADER*) datBuff[0];
+            bmpInfo   = (BITMAPINFOHEADER*) datBuff[1];
+            
+    
+            if(bmpHeader->bfType != 0x4D42)
+            {
+                std::cout << "File \"" << filename << "\" isn't a bitmap file\n";
+                return;
+            }
+            if(bmpInfo->biBitCount != 1) {
+                std::cout << "Bit per pixel diffrent then 1 is not supported" << std::to_string(bmpInfo->biBitCount) << std::endl;
+                // return;
+            }
+            // First allocate pixel memory
+            std::vector<uint8_t> pixels(bmpInfo->biSizeImage);
+    
+            file.seekg(bmpHeader->bfOffBits, file.beg);
+            // pixels.insert(pixels.begin(), std::istream_iterator<uint8_t>(file), std::istream_iterator<uint8_t>());
+            // Go to where image data starts, then read in image data
+            
+            file.read(reinterpret_cast<char*>(pixels.data()), bmpInfo->biSizeImage);
+            file.close();
+            std::vector<uint8_t> out(bmpInfo->biSizeImage+1);
+            out[0] = (uint8_t)ControlByte::DATA;
+            if(bmpInfo->biWidth == 128) {
+                for(size_t w = 0; w < 128; w++) {
+                    for (size_t h = 0; h < 64; h+=8) {
+                        uint8_t byte {0x00};
+                        for (size_t bit = 0; bit < 8; bit++) {
+                            size_t pixel_index = w/8 + (h  + bit ) * 128/8;
+                            if(pixel_index < pixels.size()) {
+                                std::bitset<8> pixel = pixels[pixel_index];
+                                std::cout << pixel << " " << 7-h/8%8 << std::endl;
+                                if(pixel[7-h/8%8] ==  false) { // assuming black pixel
+                                    byte |= (1 << (7-bit));
+                                }
+                            }
+                            else {
+                                std::cout << "Error pixel index out of range: " << pixel_index << " size: " << pixels.size() << " bit: " << bit << std::endl;
+                            }
+                        }
+                        size_t out_index = w + 128 * h/8;
+                        std::cout << "komurka: " << std::dec << out_index << std::hex <<" byte: 0x" << std::setw(2) << static_cast<short>(byte) << std::dec << " w: " << w << " h:" << h <<  std::endl;
+                        out[out_index + 1] = byte;
+                    }
+                }
+            }
+            std::cout << "Sending data to display" << std::endl;
+            _bus->send(out);
+            // sendData(out);
+            delete[] datBuff[0];
+            delete[] datBuff[1];
+    }
+
 };
