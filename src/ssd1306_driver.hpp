@@ -1,4 +1,7 @@
 #pragma once
+#include <vector>
+#include "i2c_driver.hpp"
+#include  <memory>
 /**
  * @brief SSD1306 OLED display driver (I2C version)
  * 
@@ -7,9 +10,12 @@
  */
 class SSD1306 {
 public:
-    /// Default I2C address (commonly 0x3C or 0x3D)
-    static constexpr uint8_t DEFAULT_ADDR = 0x3C;
 
+    enum class ControlByte: uint8_t  { 
+        COMMAND = 0x00,
+        DATA = 0x40
+    };
+    /// Default I2C address (commonly 0x3C or 0x3D)
     /**
      * @brief Enumeration of all SSD1306 command codes.
      * 
@@ -151,65 +157,33 @@ public:
     };
 
 private:
-    uint8_t i2c_addr;
-    std::function<void(const uint8_t cmd,const size_t len)> f_sendCommands = nullptr;
-    std::function<void(const uint8_t cmd,const size_t len)> f_sendData = nullptr;
-
+    std::shared_ptr<bus_driver> _bus; 
 public:
-    explicit SSD1306(uint8_t addr = DEFAULT_ADDR) : i2c_addr(addr) {}
-
-    /**
-     * @brief Send a single command byte.
-     */
-    void sendCommand(uint8_t cmd) const {
-        Wire.beginTransmission(i2c_addr);
-        Wire.write(0x00); // Control byte: Command
-        Wire.write(cmd);
-        Wire.endTransmission();
+    SSD1306() = delete;
+    SSD1306(std::shared_ptr<bus_driver> bus) {
+        _bus = bus;
     }
-
-    /**
-     * @brief Send a command and one parameter.
-     */
-    void sendCommand(uint8_t cmd, uint8_t value) const {
-        Wire.beginTransmission(i2c_addr);
-        Wire.write(0x00);
-        Wire.write(cmd);
-        Wire.write(value);
-        Wire.endTransmission();
-    }
-
-    /**
-     * @brief Send multiple command bytes.
-     */
-    void sendCommands(const uint8_t* data, size_t len) const {
-        Wire.beginTransmission(i2c_addr);
-        Wire.write(0x00);
-        Wire.write(data, len);
-        Wire.endTransmission();
-    }
-
     /**
      * @brief Send display RAM data (pixel buffer).
      * Control byte = 0x40.
      */
-    void sendData(const uint8_t* data, size_t len) const {
-        Wire.beginTransmission(i2c_addr);
-        Wire.write(0x40);
-        Wire.write(data, len);
-        Wire.endTransmission();
+    void sendData(const std::vector<uint8_t> &data) const {
+        std::vector<uint8_t> instruction = {(uint8_t)ControlByte::DATA};
+        instruction.insert(instruction.end(), data.begin(), data.end());
+        _bus->send(instruction);
     }
 
     /**
      * @brief Standard initialization sequence for 128x64 OLEDs.
      */
     void init_128x64() const {
-        const uint8_t init_seq[] = {
+        std::vector<uint8_t> init_seq = {
+            (uint8_t)ControlByte::COMMAND,
             (uint8_t)Command::DISPLAY_OFF,
             (uint8_t)Command::SET_DISPLAY_CLOCK_DIV, 0x80,
             (uint8_t)Command::SET_MULTIPLEX, 0x3F,
             (uint8_t)Command::SET_DISPLAY_OFFSET, 0x00,
-            (uint8_t)Command::SET_START_LINE | 0x00,
+            (uint8_t)Command::SET_START_LINE, 0x00,
             (uint8_t)Command::CHARGE_PUMP, 0x14,
             (uint8_t)Command::MEMORY_MODE, 0x00,
             (uint8_t)Command::SEG_REMAP_REVERSE,
@@ -223,7 +197,7 @@ public:
             (uint8_t)Command::DEACTIVATE_SCROLL,
             (uint8_t)Command::DISPLAY_ON
         };
-        sendCommands(init_seq, sizeof(init_seq));
+        _bus->send(init_seq);
     }
 
     /**
@@ -231,20 +205,29 @@ public:
      * @param level Value between 0x00 (dim) and 0xFF (bright).
      */
     void setContrast(uint8_t level) const {
-        sendCommand((uint8_t)Command::SET_CONTRAST, level);
+        _bus->send(std::vector<uint8_t>{(uint8_t)ControlByte::COMMAND,(uint8_t)Command::SET_CONTRAST, level});
     }
 
     /**
      * @brief Turn display ON or OFF.
      */
     void setDisplayOn(bool on) const {
-        sendCommand(on ? (uint8_t)Command::DISPLAY_ON : (uint8_t)Command::DISPLAY_OFF);
+        if(on) {
+            _bus->send(std::vector<uint8_t>{(uint8_t)ControlByte::COMMAND, (uint8_t)Command::DISPLAY_ON});
+        } else {
+            _bus->send(std::vector<uint8_t>{(uint8_t)ControlByte::COMMAND, (uint8_t)Command::DISPLAY_OFF});
+        }
     }
 
     /**
      * @brief Enable or disable inverted display mode.
      */
     void invertDisplay(bool invert) const {
-        sendCommand(invert ? (uint8_t)Command::INVERT_DISPLAY : (uint8_t)Command::NORMAL_DISPLAY);
+        if(invert) {
+            _bus->send(std::vector<uint8_t>{(uint8_t)ControlByte::COMMAND, (uint8_t)Command::INVERT_DISPLAY});
+        } else {
+            _bus->send(std::vector<uint8_t>{(uint8_t)ControlByte::COMMAND, (uint8_t)Command::NORMAL_DISPLAY});
+        }
+
     }
 };

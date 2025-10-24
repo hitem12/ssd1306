@@ -27,3 +27,8 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
 )
+
+target_link_libraries(${PROJECT_NAME} i2c)
+
+
+install(TARGETS ${CMAKE_PROJECT_NAME})
