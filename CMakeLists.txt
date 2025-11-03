@@ -1,13 +1,15 @@
 cmake_minimum_required(VERSION 3.22)
 
 set(CMAKE_C++_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
 set(CMAKE_PROJECT_NAME ssd1306)
-project(${CMAKE_PROJECT_NAME})
+project(${CMAKE_PROJECT_NAME} LANGUAGES CXX)
 message("Build type: " ${CMAKE_BUILD_TYPE})
 
 

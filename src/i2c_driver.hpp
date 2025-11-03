@@ -16,10 +16,11 @@ extern "C" {
 #include <thread>
 #include <chrono>
 #include <iomanip>
+#include <span>
 
 class bus_driver {
     public:
-        virtual void send(const std::vector<uint8_t> data) = 0;
+        virtual void send(const std::span<uint8_t> data) = 0;
         virtual ~bus_driver() {};
     protected:
         bus_driver() = default;
@@ -39,7 +40,7 @@ class i2c_driver_implemetation : public bus_driver {
             _filename = device_patch;
             _addr = address;
         }
-        void send(const std::vector<uint8_t> data) { 
+        void send(const std::span<uint8_t> data) { 
             int file;
             file = open(_filename.data(), O_RDWR);
             if(file < 0) {
@@ -57,7 +58,6 @@ class i2c_driver_implemetation : public bus_driver {
             }
             std::cout << std::endl;
             auto res = write(file, std::data(data), data.size());
-            // auto res = i2c_smbus_write_i2c_block_data(file, _addr, (uint8_t)data.size(), std::data(data));
             if(res != data.size()) {
                 std::cerr << "Write data error " << std::to_string(res) << std::endl; 
                 return;
@@ -66,8 +66,5 @@ class i2c_driver_implemetation : public bus_driver {
                 std::cout << "close device error" << std::endl;
             } 
        }
-
-
-
 
 };
