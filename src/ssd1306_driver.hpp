@@ -269,9 +269,17 @@ public:
      */
     void invertDisplay(bool invert) const {
         if(invert) {
-            _bus->send(std::vector<uint8_t>{(uint8_t)ControlByte::COMMAND, (uint8_t)Command::INVERT_DISPLAY});
+            std::vector<uint8_t> data = {
+                (uint8_t)ControlByte::COMMAND,
+                (uint8_t)Command::INVERT_DISPLAY
+            };
+            _bus->send(data);
         } else {
-            _bus->send(std::vector<uint8_t>{(uint8_t)ControlByte::COMMAND, (uint8_t)Command::NORMAL_DISPLAY});
+            std::vector<uint8_t> data = {
+                (uint8_t)ControlByte::COMMAND,
+                (uint8_t)Command::NORMAL_DISPLAY
+            };
+            _bus->send(data);
         }
 
     }
@@ -289,23 +297,23 @@ public:
         }
     }
     void set_default_canvas() {
-        auto data = {(uint8_t)ControlByte::COMMAND, 
+        std::vector<uint8_t> data = {(uint8_t)ControlByte::COMMAND, 
             (uint8_t)Command::SET_COLUMN_ADDR, 0x00, 0x7f, 
             (uint8_t)Command::SET_PAGE_ADDR, 0x00, 0x07
         };
         _bus->send(data);
     }
     void DrawInVerticalMode(std::span<uint8_t> data) {
-        auto data = {(uint8_t)ControlByte::COMMAND, (uint8_t)Command::MEMORY_MODE, 0x01};
-        _bus->send(data);
+        std::vector<uint8_t> setup = {(uint8_t)ControlByte::COMMAND, (uint8_t)Command::MEMORY_MODE, 0x01};
+        _bus->send(setup);
          set_default_canvas();
-         _bus->send(out);
+         _bus->send(data);
     }
     void DrawINHorizontalMode(std::span<uint8_t> data) {
-        auto data = {(uint8_t)ControlByte::COMMAND, (uint8_t)Command::MEMORY_MODE, 0x00};
-        _bus->send(data);
+        std::vector<uint8_t> setup = {(uint8_t)ControlByte::COMMAND, (uint8_t)Command::MEMORY_MODE, 0x00};
+        _bus->send(setup);
          set_default_canvas();
-         _bus->send(out);
+         _bus->send(data);
     }
     
 

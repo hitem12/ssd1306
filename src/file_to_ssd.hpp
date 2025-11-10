@@ -47,7 +47,7 @@ public:
             file.close();
             //allocate output buffer
             out.resize(bmpInfo->biSizeImage+1);
-            out[0] = (uint8_t)ControlByte::DATA;
+            out[0] = 0x40; //(uint8_t)ControlByte::DATA;
             if(bmpInfo->biWidth == 128) {
                 for(size_t w = 0; w < 128; w++) {
                     for (size_t h = 0; h < 64; h+=8) {
@@ -72,7 +72,7 @@ public:
                 }
             }
             std::cout << "Sending data to display" << std::endl;
-            // _bus->send({(uint8_t)ControlByte::COMMAND, (uint8_t)Command::MEMORY_MODE, 0x01});
+            // _bus->send({(uint8_t)ControlByte::COMMAND, (uint8_t)Command::MEMORY_MODE, 0x01}); 
             // set_default_canvas();
             // _bus->send(out);
             // sendData(out);
@@ -80,6 +80,6 @@ public:
             delete[] datBuff[1];
             return 0;
         }
-    private:
+              private:
 
 };
