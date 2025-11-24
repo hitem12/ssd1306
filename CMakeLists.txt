@@ -16,22 +16,27 @@ message("Build type: " ${CMAKE_BUILD_TYPE})
 
 enable_language(CXX)
 
-add_executable(${CMAKE_PROJECT_NAME})
+add_library(${CMAKE_PROJECT_NAME}_LIB INTERFACE)
 
 
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
+target_sources(${CMAKE_PROJECT_NAME}_LIB PRIVATE 
+    
 )
 
-target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
+target_include_directories(${CMAKE_PROJECT_NAME}_LIB INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 # Add project symbols (macros)
-target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
+target_compile_definitions(${CMAKE_PROJECT_NAME}_LIB PRIVATE
 )
 
-target_link_libraries(${PROJECT_NAME} i2c)
+target_link_libraries(${CMAKE_PROJECT_NAME}_LIB INTERFACE i2c)
 
 
-install(TARGETS ${CMAKE_PROJECT_NAME} RUNTIME)
+add_subdirectory(tests)
+
+add_executable(${CMAKE_PROJECT_NAME}   
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_PROJECT_NAME}_LIB)
+install(TARGETS ${CMAKE_PROJECT_NAME} TYPE RUNTIME)
