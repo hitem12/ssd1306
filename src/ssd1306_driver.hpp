@@ -6,30 +6,7 @@
 #include <filesystem> 
 #include <array>
 #include <bitset>
-/* windows style struct*/
-#pragma pack(push, 1)
-typedef struct tagBITMAPFILEHEADER {
-  uint16_t   bfType;
-  uint32_t  bfSize;
-  uint16_t   bfReserved1;
-  uint16_t   bfReserved2;
-  uint32_t  bfOffBits;
-} BITMAPFILEHEADER, *LPBITMAPFILEHEADER, *PBITMAPFILEHEADER;
 
-typedef struct tagBITMAPINFOHEADER {
-  unsigned long biSize;
-  long   biWidth;
-  long   biHeight;
-   unsigned short  biPlanes;
-   unsigned short  biBitCount;
-  unsigned long biCompression;
-  unsigned long biSizeImage;
-  long   biXPelsPerMeter;
-  long   biYPelsPerMeter;
-  unsigned long biClrUsed;
-  unsigned long biClrImportant;
-} BITMAPINFOHEADER, *LPBITMAPINFOHEADER, *PBITMAPINFOHEADER;
-#pragma pack(pop)
 
 /**
  * @brief SSD1306 OLED display driver (I2C version)

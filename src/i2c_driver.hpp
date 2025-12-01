@@ -2,12 +2,15 @@
 
 #include <string_view> 
 extern "C" {
-    #include <sys/ioctl.h>
-    #include <linux/i2c-dev.h>
-    #include <i2c/smbus.h>
-    #include <fcntl.h>
-    #include <unistd.h>
-    #include <cstdint>
+    // #if defined(__linux__)
+        #include <sys/ioctl.h>
+        #include <linux/i2c-dev.h>
+        #include <i2c/smbus.h>
+        #include <fcntl.h>
+        #include <unistd.h>
+        #include <cstdint>
+    // #elif _WIN32
+    // #endif
 }
 #include <iostream>
 #include <vector>
