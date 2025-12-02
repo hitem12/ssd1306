@@ -3,6 +3,7 @@
 #include <thread>
 #include <chrono>
 #include "file_to_ssd.hpp"
+#include <filesystem>
 int main () {
     using namespace std::chrono_literals;
     auto bus_driver = std::make_shared<i2c_driver_implemetation>();
@@ -20,7 +21,22 @@ int main () {
         std::cout << "Error loading bitmap file" << std::endl;
         return -1;
     }
-    oled.DrawINHorizontalMode(drawBuffer);
+    oled.RemapDisplay(false);
 
+    for(const auto &entry : std::filesystem::directory_iterator(".")) {
+        if(entry.path().extension() == ".bmp") {
+            std::cout << "Drawing file: " << entry.path() << std::endl;
+            drawBuffer.clear();
+            auto result = file_to_ssd::DrawFromBMPFile(entry.path(), drawBuffer);
+            if(result != 0) {
+                std::cout << "Error loading bitmap file" << std::endl;
+                continue;
+            }
+            oled.DrawINHorizontalMode(drawBuffer);
+            std::this_thread::sleep_for(2000ms);
+        }
+    }
+    // oled.DrawINHorizontalMode(drawBuffer);
+    
     return 0;
 }

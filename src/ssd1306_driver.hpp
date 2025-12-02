@@ -240,7 +240,21 @@ public:
             _bus->send(data);
         }
     }
-
+    void RemapDisplay(bool mirror) const {
+        if(mirror) {
+            std::vector<uint8_t> data = {
+                (uint8_t)ControlByte::COMMAND,
+                (uint8_t)Command::SEG_REMAP_REVERSE
+            };
+            _bus->send(data);
+        } else {
+            std::vector<uint8_t> data = {
+                (uint8_t)ControlByte::COMMAND,
+                (uint8_t)Command::SEG_REMAP_NORMAL
+            };
+            _bus->send(data);
+        }
+    }
     /**
      * @brief Enable or disable inverted display mode.
      */
@@ -258,7 +272,6 @@ public:
             };
             _bus->send(data);
         }
-
     }
     void fill_display(uint8_t pixel_value) {
         std::vector<uint8_t> image(128*64/8, pixel_value);
