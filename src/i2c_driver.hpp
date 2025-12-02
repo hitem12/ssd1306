@@ -38,5 +38,4 @@ class i2c_driver_implemetation : public bus_driver {
             _addr = address;
         }
         void send(const std::span<uint8_t> data);
-
 };
