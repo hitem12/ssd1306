@@ -46,6 +46,10 @@
 int main (int argc, char** argv) {
     CLI::App app;
     using namespace std::chrono_literals;
+    std::string i2c_path = "/dev/i2c-1";
+    uint8_t i2c_address = 0x3c;
+    app.add_option("-p,--i2c-path", i2c_path, "I2C device path (default: /dev/i2c-1)")->check(CLI::ExistingFile);
+    app.add_option("-a,--i2c-addr", i2c_address, "I2C device address (default: 0x3c)")->check(CLI::Range(0x03, 0x77));
 
     CLI::App* test = app.add_subcommand("test", "Run in test mode");
     std::chrono::milliseconds program_duration = 20000ms;
@@ -65,7 +69,7 @@ int main (int argc, char** argv) {
     CLI11_PARSE(app, argc, argv);
 
 
-    auto bus_driver = std::make_shared<i2c_driver_implemetation>();
+    auto bus_driver = std::make_shared<i2c_driver_implemetation>(i2c_path, i2c_address);
     auto oled =  SSD1306(bus_driver);
     oled.init_128x64();
     if(test->parsed()) {
