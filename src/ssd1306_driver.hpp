@@ -274,11 +274,22 @@ public:
         }
     }
     void fill_display(uint8_t pixel_value) {
+        fill_display_vertical(pixel_value);
+    }
+
+    void fill_display_vertical(uint8_t pixel_value) {
+        std::vector<uint8_t> setup = {(uint8_t)ControlByte::COMMAND, (uint8_t)Command::MEMORY_MODE, 0x01};
         std::vector<uint8_t> image(128*64/8, pixel_value);
         set_default_canvas();
         sendData(image);
     }
     
+    void fill_display_horizontal(uint8_t pixel_value) {
+        std::vector<uint8_t> setup = {(uint8_t)ControlByte::COMMAND, (uint8_t)Command::MEMORY_MODE, 0x00};
+        std::vector<uint8_t> image(128*64/8, pixel_value);
+        set_default_canvas();
+        sendData(image);
+    }
     void test_screen(uint8_t pixel_value) {
         set_default_canvas();
         for(auto i=0; i <= 128*64/8; i++){

@@ -36,10 +36,6 @@ struct imageData {
     size_t width;
     size_t height;
     std::vector<uint8_t> pixels;
-
-    ~imageData() {
-        std::cout << "imageData destruktor called" << std::endl;
-    }
 };  
 class file_to_ssd {
 public:

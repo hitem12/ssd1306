@@ -12,7 +12,7 @@
                 /* ERROR HANDLING; you can check errno to see what went wrong */
                 return;
             }
-            std::cout << "send " << data.size() << " bytes" << std::endl;
+            // std::cout << "send " << data.size() << " bytes" << std::endl;
             auto res = write(file, std::data(data), data.size());
             if(res != data.size()) {
                 std::cerr << "Write data error " << std::to_string(res) << std::endl; 
